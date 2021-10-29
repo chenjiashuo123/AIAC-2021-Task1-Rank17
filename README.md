@@ -11,16 +11,16 @@
 |-- **evaluate.py**   
 |-- **evaluate_multi_bert.py**   
 |-- **finetune_data_gen.py**  
-|-- **finetune_multi_bert_unfrozen_1_unsup_all.py **   
-|-- **finetune_simnet_13_unsup_all.py **   
-|-- **post_process.py **  
-|-- **requirements.txt **  
-|-- **run.sh **  
-|-- **sort_label.py **  
-|-- **train.sh **  
-|-- **train_multi_bert_tag.py **  
-|-- **train_text_model_focal_2.py **  
-|-- **train_video_model.py **     
+|-- **finetune_multi_bert_unfrozen_1_unsup_all.py**   
+|-- **finetune_simnet_13_unsup_all.py**   
+|-- **post_process.py**  
+|-- **requirements.txt**  
+|-- **run.sh**  
+|-- **sort_label.py**  
+|-- **train.sh**  
+|-- **train_multi_bert_tag.py**  
+|-- **train_text_model_focal_2.py**  
+|-- **train_video_model.py**     
 
 ### 1. 模型介绍
 
@@ -36,7 +36,7 @@
 
 - 优化器：BertAdam lr: 5e-5
 
-  <img src="picture/model_1_train.png" alt="avatar" style="zoom:50%;" />
+  <img src="picture/model_1_train.png" alt="avatar" style="zoom:25%;" />
 
 #### **模型一微调：**
 
@@ -47,7 +47,7 @@
 - 对没有出现在label.tsv文件中的视频对做了一个**半监督loss**。具体地，我们将每个batch中的视频进行两两配对，如果该视频对在label中出现，则是取label做mse loss；如果视频对没有在label中出现，则将**0、0.5、1作为它们标签，并计算loss**，最后取三者中最小的loss进行梯度回传。
 - 优化器：BertAdam lr: 3e-4
 
-<img src="picture/model_1_finetune.png" alt="avatar" style="zoom:50%;" />
+<img src="picture/model_1_finetune.png" alt="avatar" style="zoom:25%;" />
 
 
 
@@ -59,7 +59,7 @@
 - 使用Binary focal loss对该网络进行tag多分类预训练；
 - 优化器：BertAdam lr: 5e-5
 
-<img src="picture/model_2_train.png" alt="avatar" style="zoom:50%;" />
+<img src="picture/model_2_train.png" alt="avatar" style="zoom:25%;" />
 
 #### **模型二预训练：**
 
@@ -69,7 +69,7 @@
 - 同样使用半监督loss；
 - 优化器：BertAdam lr: 2e-5
 
-<img src="picture/model_2_finetune.png" alt="avatar" style="zoom:50%;" />
+<img src="picture/model_2_finetune.png" alt="avatar" style="zoom:25%;" />
 
 ### **2. 环境配置**
 
