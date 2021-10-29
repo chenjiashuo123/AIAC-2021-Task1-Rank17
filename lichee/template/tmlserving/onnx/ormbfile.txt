@@ -1,0 +1,6 @@
+author: "robertzhu <robertzhu@tencent.com>"
+format: ${format}
+filename: ${filename}
+tmlserving:
+  transformer: user_${format}_transformer
+  enable_batch: false

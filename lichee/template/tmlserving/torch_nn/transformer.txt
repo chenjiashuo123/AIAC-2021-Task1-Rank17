@@ -1,0 +1,86 @@
+import os
+from typing import Dict
+
+import torch
+import automaxprocs
+from tml_serving.plugin import register_plugin, PluginType, PluginInitPos
+from tml_serving.serving.stub.tml_serving_stub import predict_pb2 as pb
+from tml_serving.serving_abc import transformer_abc
+from tml_serving.transformer.keys import INPUTS_KEY, DEFAULT_INPUTS_VALUE
+from tml_serving.utils import tensor_util
+from tml_serving.servable import pytorch_nn_servable, config
+from trpc import context, log
+
+from lichee import config as lichee_config
+from lichee import plugin
+
+
+@register_plugin(plugin_type=PluginType.TRANSFORMER,
+                 plugin_name="user_torch_nn_transformer",
+                 init_pos=PluginInitPos.WORKER,
+                 version="v1.0.0",
+                 stat_flag=True)
+class UserTorchNNTransformerFactory(transformer_abc.BaseTransformerFactory):
+    def setup(self, ormb_config: Dict) -> transformer_abc.BaseTransformer:
+        return UserTorchNNTransformer(ormb_config)
+
+
+class UserTorchNNTransformer(transformer_abc.BaseTransformer):
+    def __init__(self, ormb_config: Dict):
+        super().__init__(ormb_config)
+        model_config_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'task.yaml')
+        lichee_config.merge_from_file(model_config_file)
+        self.cfg = lichee_config.get_cfg()
+
+        # 初始化field parser
+        self.parsers = []
+        self.init_parsers()
+
+        # 初始化model inputs
+        self.model_inputs = lichee_config.get_model_inputs()
+
+        # 初始化task cls
+        self.task_cls = plugin.get_plugin(plugin.PluginType.TASK, self.cfg.MODEL.TASK.NAME)
+
+    def init_parsers(self):
+        for field_parser in self.cfg.DATASET.FIELD:
+            parser_cls = plugin.get_plugin(plugin.PluginType.FIELD_PARSER, field_parser["NAME"])
+            parser = parser_cls()
+            parser.init(self.cfg)
+            if "KEY" not in field_parser:
+                continue
+
+            alias = field_parser["KEY"]
+            if "ALIAS" in field_parser:
+                alias = field_parser["ALIAS"]
+            parser.set_key(alias, field_parser["KEY"])
+
+            is_input = False
+            for node in self.cfg.MODEL.GRAPH:
+                if "INPUTS" in node and field_parser["KEY"] in node["INPUTS"]:
+                    is_input = True
+
+            if is_input:
+                self.parsers.append(parser)
+
+    async def pre_process(self, ctx: context.Context, request: pb.DensePredictRequest) -> object:
+        # get text buffer
+        user_inputs = {}
+        for field in self.model_inputs:
+            user_inputs[field] = tensor_util.make_buffer(request.inputs[field])
+
+        inputs = {}
+        for parser in self.parsers:
+            inputs.update(parser.parse(user_inputs))
+
+        for key in self.model_inputs:
+            inputs[key] = torch.unsqueeze(inputs[key], dim=0)
+
+        return inputs
+
+    async def post_process(self, ctx: context.Context, outputs: object) -> pb.DensePredictResponse:
+        rsp = pb.DensePredictResponse()
+        ret = self.task_cls.get_output(outputs)
+        rsp.outputs["prob"].CopyFrom(tensor_util.make_tensor_proto(ret[0]))
+        rsp.outputs["label"].CopyFrom(tensor_util.make_tensor_proto(ret[1]))
+        return rsp
