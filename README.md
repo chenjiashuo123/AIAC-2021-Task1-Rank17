@@ -15,9 +15,9 @@
 |-- **finetune_simnet_13_unsup_all.py**   
 |-- **post_process.py**  
 |-- **requirements.txt**  
-|-- **run.sh**  
+|-- **run.sh**  推理文件
 |-- **sort_label.py**  
-|-- **train.sh**  
+|-- **train.sh**  预训练文件
 |-- **train_multi_bert_tag.py**  
 |-- **train_text_model_focal_2.py**  
 |-- **train_video_model.py**     
